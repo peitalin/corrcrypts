@@ -4,8 +4,6 @@ pragma solidity ^0.8.0;
 import "../../shared/randomizer/IRandomizer.sol";
 import "../legion/ILegion.sol";
 import "../legionmetadatastore/ILegionMetadataStore.sol";
-import "../external/ITreasure.sol";
-import "../consumable/IConsumable.sol";
 import "../treasuremetadatastore/ITreasureMetadataStore.sol";
 import "../treasurefragment/ITreasureFragment.sol";
 
@@ -17,9 +15,6 @@ library LibCorruptionCryptsDiamond {
         IRandomizer randomizer;
         ILegion legion;
         ILegionMetadataStore legionMetadataStore;
-        ITreasure treasure;
-        IConsumable consumable;
-        ITreasureMetadataStore treasureMetadataStore;
         ITreasureFragment treasureFragment;
     }
 }

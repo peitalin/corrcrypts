@@ -1,5 +1,5 @@
 {
-  "name": "treasure-primitives",
+  "name": "corrcrypts",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -8,7 +8,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git@github.com:peitalin/primitives.git"
+    "url": "git@github.com:peitalin/corruption-crypts.git"
   },
   "author": "peitalin",
   "license": "",

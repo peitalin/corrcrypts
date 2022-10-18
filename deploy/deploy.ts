@@ -15,16 +15,16 @@ async function main() {
   // await hre.run('compile');
 
   // We get the contract to deploy
-  const TreasureTriad = await ethers.getContractFactory("TreasureTriad");
-  const tTriad = await TreasureTriad .deploy();
-  await tTriad.deployed();
+  // const TreasureTriad = await ethers.getContractFactory("TreasureTriad");
+  // const tTriad = await TreasureTriad .deploy();
+  // await tTriad.deployed();
 
-  const TreasureTriadCardStats = await ethers.getContractFactory("TreasureTriadCardStats");
-  const tTriadCardStats = await TreasureTriadCardStats.deploy();
-  await tTriadCardStats .deployed();
+  // const TreasureTriadCardStats = await ethers.getContractFactory("TreasureTriadCardStats");
+  // const tTriadCardStats = await TreasureTriadCardStats.deploy();
+  // await tTriadCardStats .deployed();
 
-  console.log("TreasureTriad deployed to:", tTriad.address);
-  console.log("TreasureTriadCardStats  deployed to:", tTriadCardStats .address);
+  // console.log("TreasureTriad deployed to:", tTriad.address);
+  // console.log("TreasureTriadCardStats  deployed to:", tTriadCardStats .address);
 }
 
 // We recommend this pattern to be able to use async/await everywhere

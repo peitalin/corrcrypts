@@ -14,12 +14,10 @@ abstract contract CorruptionCryptsContracts is Initializable, CorruptionCryptsSt
     function setContracts(
         address _legionAddress,
         address _legionMetadataStoreAddress,
-        address _treasureMetadataStoreAddress,
         address _randomizerAddress
     ) external onlyAdminOrOwner {
         appStorage.legion = ILegion(_legionAddress);
         appStorage.legionMetadataStore = ILegionMetadataStore(_legionMetadataStoreAddress);
-        appStorage.treasureMetadataStore = ITreasureMetadataStore(_treasureMetadataStoreAddress);
         appStorage.randomizer = IRandomizer(_randomizerAddress);
     }
 
@@ -31,7 +29,6 @@ abstract contract CorruptionCryptsContracts is Initializable, CorruptionCryptsSt
     function areContractsSet() public view returns(bool) {
         return address(appStorage.legion) != address(0)
             && address(appStorage.legionMetadataStore) != address(0)
-            && address(appStorage.treasureMetadataStore) != address(0)
             && address(appStorage.randomizer) != address(0);
     }
 }

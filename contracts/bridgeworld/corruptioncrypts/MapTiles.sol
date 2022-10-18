@@ -8,6 +8,7 @@ contract MapTiles is Initializable {
 
     struct MapTile {
         uint tileId;
+        uint moves;
         bool north;
         bool east;
         bool south;
@@ -25,6 +26,7 @@ contract MapTiles is Initializable {
         // for the tile road directions
         mapTiles[0] = MapTile({
             tileId: 1,
+            moves: 2,
             north: false,
             east: true,
             south: false,
@@ -32,6 +34,7 @@ contract MapTiles is Initializable {
         });
         mapTiles[1] = MapTile({
             tileId: 2,
+            moves: 2,
             north: false,
             east: true,
             south: false,
@@ -39,6 +42,7 @@ contract MapTiles is Initializable {
         });
         mapTiles[2] = MapTile({
             tileId: 3,
+            moves: 2,
             north: false,
             east: true,
             south: true,
@@ -46,6 +50,7 @@ contract MapTiles is Initializable {
         });
         mapTiles[3] = MapTile({
             tileId: 4,
+            moves: 2,
             north: false,
             east: false,
             south: true,
@@ -53,6 +58,7 @@ contract MapTiles is Initializable {
         });
         mapTiles[4] = MapTile({
             tileId: 5,
+            moves: 3,
             north: false,
             east: true,
             south: true,
@@ -60,6 +66,7 @@ contract MapTiles is Initializable {
         });
         mapTiles[5] = MapTile({
             tileId: 6,
+            moves: 3,
             north: false,
             east: true,
             south: true,
@@ -68,6 +75,7 @@ contract MapTiles is Initializable {
 
         mapTiles[6] = MapTile({
             tileId: 7,
+            moves: 4,
             north: true,
             east: true,
             south: true,
@@ -75,6 +83,7 @@ contract MapTiles is Initializable {
         });
         mapTiles[7] = MapTile({
             tileId: 8,
+            moves: 4,
             north: true,
             east: true,
             south: true,
@@ -82,6 +91,7 @@ contract MapTiles is Initializable {
         });
         mapTiles[8] = MapTile({
             tileId: 9,
+            moves: 2,
             north: true,
             east: true,
             south: false,
@@ -89,6 +99,7 @@ contract MapTiles is Initializable {
         });
         mapTiles[9] = MapTile({
             tileId: 10,
+            moves: 2,
             north: true,
             east: false,
             south: false,
@@ -96,6 +107,7 @@ contract MapTiles is Initializable {
         });
         mapTiles[10] = MapTile({
             tileId: 11,
+            moves: 3,
             north: true,
             east: true,
             south: false,
@@ -103,6 +115,7 @@ contract MapTiles is Initializable {
         });
         mapTiles[11] = MapTile({
             tileId: 12,
+            moves: 3,
             north: true,
             east: true,
             south: false,
@@ -111,6 +124,7 @@ contract MapTiles is Initializable {
 
         mapTiles[12] = MapTile({
             tileId: 13,
+            moves: 2,
             north: false,
             east: true,
             south: false,
@@ -118,6 +132,7 @@ contract MapTiles is Initializable {
         });
         mapTiles[13] = MapTile({
             tileId: 14,
+            moves: 2,
             north: false,
             east: true,
             south: false,
@@ -125,6 +140,7 @@ contract MapTiles is Initializable {
         });
         mapTiles[14] = MapTile({
             tileId: 15,
+            moves: 2,
             north: false,
             east: true,
             south: false,
@@ -132,6 +148,7 @@ contract MapTiles is Initializable {
         });
         mapTiles[15] = MapTile({
             tileId: 16,
+            moves: 2,
             north: false,
             east: true,
             south: false,
@@ -139,6 +156,7 @@ contract MapTiles is Initializable {
         });
         mapTiles[16] = MapTile({
             tileId: 17,
+            moves: 2,
             north: true,
             east: false,
             south: true,
@@ -146,6 +164,7 @@ contract MapTiles is Initializable {
         });
         mapTiles[17] = MapTile({
             tileId: 18,
+            moves: 2,
             north: true,
             east: false,
             south: true,
@@ -154,6 +173,7 @@ contract MapTiles is Initializable {
 
         mapTiles[18] = MapTile({
             tileId: 19,
+            moves: 2,
             north: false,
             east: true,
             south: false,
@@ -161,6 +181,7 @@ contract MapTiles is Initializable {
         });
         mapTiles[19] = MapTile({
             tileId: 20,
+            moves: 2,
             north: false,
             east: true,
             south: false,
@@ -168,6 +189,7 @@ contract MapTiles is Initializable {
         });
         mapTiles[20] = MapTile({
             tileId: 21,
+            moves: 2,
             north: false,
             east: true,
             south: true,
@@ -175,6 +197,7 @@ contract MapTiles is Initializable {
         });
         mapTiles[21] = MapTile({
             tileId: 22,
+            moves: 2,
             north: false,
             east: false,
             south: true,
@@ -182,6 +205,7 @@ contract MapTiles is Initializable {
         });
         mapTiles[22] = MapTile({
             tileId: 23,
+            moves: 3,
             north: true,
             east: true,
             south: true,
@@ -189,6 +213,7 @@ contract MapTiles is Initializable {
         });
         mapTiles[23] = MapTile({
             tileId: 24,
+            moves: 3,
             north: true,
             east: false,
             south: true,
@@ -197,6 +222,7 @@ contract MapTiles is Initializable {
 
         mapTiles[24] = MapTile({
             tileId: 25,
+            moves: 4,
             north: true,
             east: true,
             south: true,
@@ -204,6 +230,7 @@ contract MapTiles is Initializable {
         });
         mapTiles[25] = MapTile({
             tileId: 26,
+            moves: 4,
             north: true,
             east: true,
             south: true,
@@ -211,6 +238,7 @@ contract MapTiles is Initializable {
         });
         mapTiles[26] = MapTile({
             tileId: 27,
+            moves: 2,
             north: true,
             east: true,
             south: false,
@@ -218,6 +246,7 @@ contract MapTiles is Initializable {
         });
         mapTiles[27] = MapTile({
             tileId: 28,
+            moves: 2,
             north: true,
             east: false,
             south: false,
@@ -225,6 +254,7 @@ contract MapTiles is Initializable {
         });
         mapTiles[28] = MapTile({
             tileId: 29,
+            moves: 3,
             north: true,
             east: true,
             south: true,
@@ -232,6 +262,7 @@ contract MapTiles is Initializable {
         });
         mapTiles[29] = MapTile({
             tileId: 30,
+            moves: 3,
             north: true,
             east: false,
             south: true,
@@ -240,6 +271,7 @@ contract MapTiles is Initializable {
 
         mapTiles[30] = MapTile({
             tileId: 31,
+            moves: 2,
             north: true,
             east: false,
             south: true,
@@ -247,6 +279,7 @@ contract MapTiles is Initializable {
         });
         mapTiles[31] = MapTile({
             tileId: 32,
+            moves: 2,
             north: true,
             east: false,
             south: true,
@@ -254,6 +287,7 @@ contract MapTiles is Initializable {
         });
         mapTiles[32] = MapTile({
             tileId: 33,
+            moves: 2,
             north: true,
             east: false,
             south: true,
@@ -261,6 +295,7 @@ contract MapTiles is Initializable {
         });
         mapTiles[33] = MapTile({
             tileId: 34,
+            moves: 2,
             north: true,
             east: false,
             south: true,
@@ -268,6 +303,7 @@ contract MapTiles is Initializable {
         });
         mapTiles[34] = MapTile({
             tileId: 35,
+            moves: 2,
             north: true,
             east: false,
             south: true,
@@ -275,6 +311,7 @@ contract MapTiles is Initializable {
         });
         mapTiles[35] = MapTile({
             tileId: 36,
+            moves: 2,
             north: true,
             east: false,
             south: true,

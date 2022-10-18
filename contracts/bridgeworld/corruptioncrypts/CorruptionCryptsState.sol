@@ -29,16 +29,11 @@ abstract contract CorruptionCryptsState is Initializable, ICorruptionCrypts, Adm
     // The base rarities for each tier of treasure out of 256.
     uint8[5] public baseTreasureRarityPerTier;
 
-    uint8 public numberOfFlippedCardsToWin;
-
-    // IRandomizer public randomizer;
-
     function __CorruptionCryptsState_init() internal initializer {
         AdminableUpgradeable.__Adminable_init();
 
         baseTreasureRarityPerTier = [51, 51, 51, 51, 52];
 
-        numberOfFlippedCardsToWin = 2;
 
     }
 

@@ -9,7 +9,6 @@ import 'solidity-coverage';
 import '@typechain/hardhat'
 
 
-const privateKey = process.env.DEV_PRIVATE_KEY
 const config: HardhatUserConfig = {
   defaultNetwork: "hardhat",
   networks: {
@@ -61,9 +60,6 @@ const config: HardhatUserConfig = {
         }
       },
     ],
-  },
-  etherscan: {
-    apiKey: process.env.ETHERSCAN_API_KEY
   },
   namedAccounts: {
     deployer: 0,
