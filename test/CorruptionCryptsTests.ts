@@ -4,11 +4,6 @@ import { ethers, deployments } from "hardhat";
 import { BigNumber, Contract } from "ethers";
 import { randomBytes, Result } from "ethers/lib/utils";
 
-import { Utilities } from "./utilities";
-import LegionRarity = Utilities.LegionRarity;
-import LegionClass = Utilities.LegionClass;
-import LegionGeneration = Utilities.LegionGeneration;
-
 import { MockTreasure } from "../typechain-types/MockTreasure";
 import { LegionMetadataStore, Randomizer, CorruptionCrypts } from "../typechain-types";
 import { MapTiles, CoordsStruct } from "../typechain-types/CorruptionCrypts";
@@ -52,7 +47,7 @@ describe("CorruptionCrypts", function () {
 
 
     beforeEach(async () => {
-        Utilities.changeAutomineEnabled(true);
+        // Utilities.changeAutomineEnabled(true);
 
         let signers = await ethers.getSigners();
         _ownerWallet = signers[0];
@@ -69,14 +64,8 @@ describe("CorruptionCrypts", function () {
         await CCrypts.initialize();
         await CCrypts.setupBoardForPlayer();
 
-        // randomizer = await Utilities.getDeployedContract<Randomizer>('Randomizer', _ownerWallet);
-        // CCrypts = await Utilities.getDeployedContract<CorruptionCrypts>('CorruptionCrypts', _ownerWallet);
     });
 
-    // beforeEach( async () => {
-    //     await new Promise(resolve => setTimeout(resolve, 500));
-    //     console.clear()
-    // });
 
 
     it("Places Maptiles and moves Legions, validating moves", async function () {
