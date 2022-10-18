@@ -9,7 +9,7 @@ import "./CorruptionCryptsState.sol";
 
 
 import "hardhat/console.sol";
-import "./CorruptionCryptsBoardGeneration.sol";
+import "./CorruptionCryptsShuffler.sol";
 import "./MapTiles.sol";
 
 
@@ -77,7 +77,7 @@ enum MoveType {
 
 
 
-contract CorruptionCrypts is Initializable, MapTiles, CorruptionCryptsState, CorruptionCryptsBoardGeneration {
+contract CorruptionCrypts is Initializable, MapTiles, CorruptionCryptsState, CorruptionCryptsShuffler {
 
     //////////////////////////////////
     /////// Player Board Variables /////////
@@ -96,7 +96,6 @@ contract CorruptionCrypts is Initializable, MapTiles, CorruptionCryptsState, Cor
     DoubleEndedQueue.Bytes32Deque tileQueue;
     // https://docs.openzeppelin.com/contracts/4.x/api/utils#DoubleEndedQueue
     mapping(uint => Coords) mapTileIdToCell;
-    uint MAX_TILES_ON_BOARD = 5;
 
 
     //////////////////////////////////
@@ -112,19 +111,18 @@ contract CorruptionCrypts is Initializable, MapTiles, CorruptionCryptsState, Cor
     // keep track of whether player drew a maptile this round
     uint cryptRound = 1;
     // increment this every time
-    // MAX_LEGIONS_ON_TEMPLES_RESET_COUNT is reached
+    // MAX_LEGIONS_ON_TEMPLES_BEFORE_RESET is reached
     // Then for each player, the next time they drawRandomMapTile, the temple
     // locations change for every player
 
 
     //////////////////////////////////
-    /////// Temple Variables /////////
+    /////// Global Temple Variables /////////
     //////////////////////////////////
 
     // Once MAX legions at temples reached, reset temple locations
     // Reset the epoch, a new round begins
     uint numLegionsReachedTemples;
-    uint MAX_LEGIONS_ON_TEMPLES_RESET_COUNT = 2;
     // or if this limit isn't reached in a timely matter, every X days
     // anyone can call the reshuffleTemples() function
     Temple[5][8] globalTempleLocations;
@@ -134,6 +132,7 @@ contract CorruptionCrypts is Initializable, MapTiles, CorruptionCryptsState, Cor
 
     mapping(Temple => mapping(address => uint[])) playerLegionsOnTemple;
     // need actual player's legionsIds on temples to see which legions can craft
+    // forbidden crafts
 
 
     //////////////////////////////////
@@ -152,8 +151,7 @@ contract CorruptionCrypts is Initializable, MapTiles, CorruptionCryptsState, Cor
 
 
     function initialize() external initializer {
-        // CorruptionCryptsBoardGeneration.__CorruptionCryptsBoardGeneration_init();
-        MapTiles.init();
+        MapTiles.initMapTiles();
     }
 
     function drawRandomMapTile(uint _requestId)
@@ -165,7 +163,7 @@ contract CorruptionCrypts is Initializable, MapTiles, CorruptionCryptsState, Cor
             epochPlayerLastDrewMapTile[msg.sender] != currentEpoch,
             "Player has already moved this epoch"
         );
-        uint mapTileId = CorruptionCryptsBoardGeneration.drawRandomMapTileId(_requestId);
+        uint mapTileId = CorruptionCryptsShuffler.drawRandomMapTileId(_requestId);
         MapTile memory drawnMapTile = getMapTile(mapTileId);
         epochPlayerLastDrewMapTile[msg.sender] = currentEpoch;
         return drawnMapTile;
@@ -179,20 +177,32 @@ contract CorruptionCrypts is Initializable, MapTiles, CorruptionCryptsState, Cor
 
     function advanceEpoch() public {
         // anyone can try advance the epoch
+        // if current time is past endTime
         if (block.timestamp >= epochEndTime) {
-            epochStartTime = epochEndTime;
-            epochEndTime = epochEndTime + 1 hours;
-            ++currentEpoch;
+            if (block.timestamp - epochEndTime > 1 hours) {
+                // if current time is far ahead of epochEndTime, fast forward
+                // and skip a bunch of epochs to present time
+                epochStartTime = block.timestamp;
+                epochEndTime = epochStartTime + 1 hours;
+                ++currentEpoch;
+            } else {
+                // or if current time is within an hour of the previous endTime
+                // we simply do this:
+                epochStartTime = epochEndTime;
+                epochEndTime = epochEndTime + 1 hours;
+                ++currentEpoch;
+            }
         }
-        // if epochs are left un-updated that's fine (no players), game pauses
-        // until epochs begin advancing again
+        // Why do we need to do this?
+        // What happens if epochs are un-updated for a period of time?
+        // can someone increment epoch multiple times quickly in succession?
     }
 
     function setupBoardForPlayer() public {
 
         Cell[5][8] storage board = emptyBoard;
 
-        /// randomly pick 3 cells and put treasures on it
+        /// Redo this: randomly pick 3 cells and put treasures on it
         uint256[] memory randomTreasures1 = new uint256[](1);
         uint256[] memory randomTreasures2 = new uint256[](2);
         uint256[] memory randomTreasures3 = new uint256[](1);
@@ -205,13 +215,14 @@ contract CorruptionCrypts is Initializable, MapTiles, CorruptionCryptsState, Cor
         board[1][0].treasureIds = randomTreasures2;
         board[2][0].treasureIds = randomTreasures3;
 
-        /// Randomly pick 5 distinct tiles on the board edges and place temples on them
+        /// Redo: Randomly pick 5 distinct tiles on the board edges and place temples on them
         // board[x][y]
         globalTempleLocations[1][4] = Temple.ForbiddenCrafts;
         globalTempleLocations[2][4] = Temple.Harvester1;
         globalTempleLocations[4][4] = Temple.Harvester2;
         globalTempleLocations[6][4] = Temple.Harvester3;
         globalTempleLocations[7][4] = Temple.Harvester4;
+        // shuffleGlobalTempleLocations();
 
         playersBoards[msg.sender] = board;
         emit SetupBoardEvent(msg.sender);
@@ -228,7 +239,7 @@ contract CorruptionCrypts is Initializable, MapTiles, CorruptionCryptsState, Cor
 
         uint randInt = block.timestamp;
         uint8 NUM_HARVESTERS = 4;
-        uint8[2][] memory templeLocations = CorruptionCryptsBoardGeneration._pickRandomUniqueTempleCoordinates(
+        uint8[2][] memory templeLocations = CorruptionCryptsShuffler._pickRandomUniqueTempleCoordinates(
             NUM_HARVESTERS + 1,
             randInt
         );
@@ -361,7 +372,7 @@ contract CorruptionCrypts is Initializable, MapTiles, CorruptionCryptsState, Cor
 
             _divertCorruption(totalLegionsOnTemple[currentTemple], currentTemple);
 
-            if (numLegionsReachedTemples >= MAX_LEGIONS_ON_TEMPLES_RESET_COUNT) {
+            if (numLegionsReachedTemples >= MAX_LEGIONS_ON_TEMPLES_BEFORE_RESET) {
                 shuffleGlobalTempleLocations();
             }
         }
@@ -526,7 +537,7 @@ contract CorruptionCrypts is Initializable, MapTiles, CorruptionCryptsState, Cor
     function getMapTile(uint mapTileId) public returns (MapTile memory) {
         // tileId is 1-indexed, subtract 1 to get 0-indexed maptile
         require(mapTileId > 0, "MapTileId cannot be less than 1");
-        MapTile memory mtile = MapTiles.mapTiles[mapTileId-1];
+        MapTile memory mtile = mapTiles[mapTileId-1];
         emit ViewMapTile(mtile.tileId, mtile.moves, mtile.north, mtile.east, mtile.south, mtile.west);
         return mtile;
     }

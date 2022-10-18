@@ -45,8 +45,6 @@ contract ShittyRandom {
         for (uint i; i < draws.length; i++) {
             uint drawIndex = draws[i];
             uint8[2] memory cell= gridCells[drawIndex];
-            // console.log("cell[0]", cell[0]);
-            // console.log("cell[1]", cell[1]);
             sampledCells[i] = cell;
         }
 

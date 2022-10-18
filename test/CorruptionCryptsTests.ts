@@ -78,26 +78,8 @@ describe("CorruptionCrypts", function () {
     //     console.clear()
     // });
 
-    // it("Step 1", async function () {
 
-    //     let coord1: CoordsStruct = { "x": 0, "y": 0 }
-    //     let coord2: CoordsStruct = { "x": 1, "y": 0 }
-    //     let coord3: CoordsStruct = { "x": 1, "y": 1 }
-    //     let coord4: CoordsStruct = { "x": 1, "y": 2 }
-    //     let coord5: CoordsStruct = { "x": 2, "y": 2 }
-
-    //     // place tiles
-    //     await CCrypts.placeMapTileOnBoard(1, coord1);
-    //     await CCrypts.placeMapTileOnBoard(6, coord2);
-    //     await CCrypts.placeMapTileOnBoard(29, coord3);
-    //     await CCrypts.placeMapTileOnBoard(27, coord4);
-
-    //     printBoard(CCrypts);
-    //     console.log("STEP 1")
-    // });
-
-
-    it("Step 2", async function () {
+    it("Places Maptiles and moves Legions, validating moves", async function () {
 
         let coord1: CoordsStruct = { "x": 0, "y": 0 }
         let coord2: CoordsStruct = { "x": 1, "y": 0 }
@@ -243,23 +225,6 @@ describe("CorruptionCrypts", function () {
     });
 
 
-    // it("Step 1", async function () {
-    //     await CCrypts.placeMapTileOnBoard(1, 0, 0);
-    //     printBoard(CorruptionCrypts);
-    // });
-
-    // it("Step 2", async function () {
-    //     await CCrypts.placeMapTileOnBoard(1, 0, 0);
-    //     await CCrypts.placeMapTileOnBoard(6, 1, 0);
-    //     printBoard(CCrypts);
-    // });
-
-    // it("Step 3", async function () {
-    //     await CCrypts.placeMapTileOnBoard(1, 0, 0);
-    //     await CCrypts.placeMapTileOnBoard(6, 1, 0);
-    //     await CCrypts.placeMapTileOnBoard(29, 1, 1);
-    //     printBoard(CCrypts);
-    // });
 
     // it("Draw Random MapTile", async function () {
     //     // await Utilities.setRandomNumber(randomizer,
@@ -288,41 +253,6 @@ describe("CorruptionCrypts", function () {
     //         { "x": 2, "y": 2 },
     //     ], legionIds)
     // });
-
-
-
-    // function createEmptyCell(
-    //     hasAffinity: boolean = false,
-    //     affinity: Utilities.TreasureCategory = Utilities.TreasureCategory.ALCHEMY,
-    //     isCorrupted: boolean = false)
-    // : CellStruct
-    // {
-    //     return {
-    //         "playerType": Utilities.PlayerType.NONE,
-    //         "treasureId": 0,
-    //         "hasAffinity": hasAffinity,
-    //         "affinity": affinity,
-    //         "isFlipped": false,
-    //         "isCorrupted": isCorrupted
-    //     };
-    // }
-
-    // function createNatureCell(
-    //     treasureId: number,
-    //     hasAffinity: boolean = false,
-    //     affinity: Utilities.TreasureCategory = Utilities.TreasureCategory.ALCHEMY,
-    //     isCorrupted: boolean = false)
-    // : CellStruct
-    // {
-    //     return {
-    //         "playerType": Utilities.PlayerType.NATURE,
-    //         "treasureId": treasureId,
-    //         "hasAffinity": hasAffinity,
-    //         "affinity": affinity,
-    //         "isFlipped": false,
-    //         "isCorrupted": isCorrupted
-    //     };
-    // }
 
 
     //////////////////////////////

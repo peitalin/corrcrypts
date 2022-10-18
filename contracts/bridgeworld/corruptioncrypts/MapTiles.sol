@@ -17,10 +17,8 @@ contract MapTiles is Initializable {
     }
 
     mapping(uint256 => MapTile) public mapTiles;
-    // MapTile[36] mapTiles;
 
-    function init() internal {
-        // CorruptionCryptsBoardGeneration.__CorruptionCryptsBoardGeneration_init();
+    function initMapTiles() internal {
 
         // See https://boardgamegeek.com/image/3128699/karuba
         // for the tile road directions
