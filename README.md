@@ -7,7 +7,7 @@ npx hardhat compile # generates typechain types
 npx hardhat test
 ```
 
-![Alt Text](https://github.com/peitalin/corrcrypts/corrcrypts2.gif)
+![Alt Text](https://github.com/peitalin/corrcrypts/blob/main/corrcrypts2.gif)
 
 
 
