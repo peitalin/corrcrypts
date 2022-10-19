@@ -5,8 +5,9 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts/utils/structs/DoubleEndedQueue.sol";
 
 import "../legionmetadatastore/ILegionMetadataStore.sol";
-import "./CorruptionCryptsState.sol";
+import "./CorruptionCryptsGlobalState.sol";
 
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 import "hardhat/console.sol";
 import "./CorruptionCryptsShuffler.sol";
@@ -23,7 +24,7 @@ enum PlayerType {
 // Represents the information contained in a single cell of the game grid.
 struct Cell {
     // The MapTile played on this cell. May be 0 if PlayerType == NONE
-    uint256 tileId;
+    uint8 tileId;
 
     // Treasure Fragments Ids on this cell. Loot.
     uint256[] treasureIds;
@@ -77,7 +78,7 @@ enum MoveType {
 
 
 
-contract CorruptionCrypts is Initializable, MapTiles, CorruptionCryptsState, CorruptionCryptsShuffler {
+contract CorruptionCrypts is Initializable, MapTiles, OwnableUpgradeable, CorruptionCryptsGlobalState, CorruptionCryptsShuffler {
 
     //////////////////////////////////
     /////// Player Board Variables /////////
@@ -91,29 +92,14 @@ contract CorruptionCrypts is Initializable, MapTiles, CorruptionCryptsState, Cor
     // playerAddress => LegionSquadId(0-3) => LegionSquad
     /// We will batch legions into squads and have them move around the map
 
-    // keep a queue of MapTiles on the board and ability to look up their cell
+    // keep a record of MapTiles on the board and ability to look up their cell
     // these maptiles are on (so that we can remove it)
-    DoubleEndedQueue.Bytes32Deque tileQueue;
+    // As players place more MapTiles, the oldest tiles are removed.
     // https://docs.openzeppelin.com/contracts/4.x/api/utils#DoubleEndedQueue
+    DoubleEndedQueue.Bytes32Deque tilesOnBoardQueue;
     mapping(uint => Coords) mapTileIdToCell;
 
 
-    //////////////////////////////////
-    /////// Epoch Variables /////////
-    //////////////////////////////////
-
-    // every epoch lasts 1 hrs, players can draw maptiles once every hour
-    uint currentEpoch = 1;
-    uint epochStartTime;
-    uint epochEndTime;
-    bool epochEnded;
-    mapping(address => uint) epochPlayerLastDrewMapTile;
-    // keep track of whether player drew a maptile this round
-    uint cryptRound = 1;
-    // increment this every time
-    // MAX_LEGIONS_ON_TEMPLES_BEFORE_RESET is reached
-    // Then for each player, the next time they drawRandomMapTile, the temple
-    // locations change for every player
 
 
     //////////////////////////////////
@@ -141,6 +127,7 @@ contract CorruptionCrypts is Initializable, MapTiles, CorruptionCryptsState, Cor
 
     event ViewCell(uint256, uint256[], LegionSquadId, uint[], Temple);
     event ViewMapTile(uint, uint, bool, bool, bool, bool);
+    event ViewPendingMapTiles(MapTile[]);
     event SetupBoardEvent(address);
 
     event PlayerLegionsReachedTemple(uint[], Temple);
@@ -149,54 +136,37 @@ contract CorruptionCrypts is Initializable, MapTiles, CorruptionCryptsState, Cor
     event TempleCoordsReshuffled(Coords[], Temple[]);
     // list of new coords for temples, order matches order in Temple enum
 
-
     function initialize() external initializer {
+        // CorruptionCryptsShuffler.__CorruptionCryptsShuffler_init();
+        OwnableUpgradeable.__Ownable_init();
+        // proxy sets owner as 0x000000 address, manually call ownable here instead
         MapTiles.initMapTiles();
     }
 
-    function drawRandomMapTile(uint _requestId)
+    function drawPendingMapTiles(uint _requestId)
         external
         tryAdvanceEpoch
-        returns (MapTile memory)
+        returns (MapTile[] memory)
     {
-        require(
-            epochPlayerLastDrewMapTile[msg.sender] != currentEpoch,
-            "Player has already moved this epoch"
+
+        uint8 numPendingMoves = _calculatePendingMoves();
+        // see how many moves have built up for the player over time
+        if (numPendingMoves == 0) revert("No pending moves for player");
+
+        uint8[] memory mapTileIds = CorruptionCryptsShuffler.drawRandomMapTileIds(
+            _requestId,
+            numPendingMoves
         );
-        uint mapTileId = CorruptionCryptsShuffler.drawRandomMapTileId(_requestId);
-        MapTile memory drawnMapTile = getMapTile(mapTileId);
-        epochPlayerLastDrewMapTile[msg.sender] = currentEpoch;
-        return drawnMapTile;
-    }
+        MapTile[] memory drawnMapTiles = new MapTile[](numPendingMoves);
 
-    modifier tryAdvanceEpoch() {
-        // try advance epoch if it's after epochEndTime
-        advanceEpoch();
-        _;
-    }
-
-    function advanceEpoch() public {
-        // anyone can try advance the epoch
-        // if current time is past endTime
-        if (block.timestamp >= epochEndTime) {
-            if (block.timestamp - epochEndTime > 1 hours) {
-                // if current time is far ahead of epochEndTime, fast forward
-                // and skip a bunch of epochs to present time
-                epochStartTime = block.timestamp;
-                epochEndTime = epochStartTime + 1 hours;
-                ++currentEpoch;
-            } else {
-                // or if current time is within an hour of the previous endTime
-                // we simply do this:
-                epochStartTime = epochEndTime;
-                epochEndTime = epochEndTime + 1 hours;
-                ++currentEpoch;
-            }
+        for (uint j = 0; j < numPendingMoves; j++) {
+            drawnMapTiles[j] = getMapTile(mapTileIds[j]);
         }
-        // Why do we need to do this?
-        // What happens if epochs are un-updated for a period of time?
-        // can someone increment epoch multiple times quickly in succession?
+        emit ViewPendingMapTiles(drawnMapTiles);
+        return drawnMapTiles;
     }
+
+
 
     function setupBoardForPlayer() public {
 
@@ -343,7 +313,7 @@ contract CorruptionCrypts is Initializable, MapTiles, CorruptionCryptsState, Cor
 
         require(
             playersBoards[msg.sender][endDest.x][endDest.y].legionSquadId == LegionSquadId.None,
-            "Cannot stack two legion squads on top of the same MapTile"
+            "Cannot stack two legion squads on the same MapTile"
         );
 
         // if successfully loops through all moves, assign legion to endDestination
@@ -494,14 +464,14 @@ contract CorruptionCrypts is Initializable, MapTiles, CorruptionCryptsState, Cor
 
 
     function placeMapTileOnBoard(
-        uint tileId,
+        uint8 tileId,
         Coords calldata coords
     ) legalTilePlacement(coords) public {
 
         // if max number of mapTiles already placed
-        if (DoubleEndedQueue.length(tileQueue) >= MAX_TILES_ON_BOARD) {
+        if (DoubleEndedQueue.length(tilesOnBoardQueue) >= MAX_TILES_ON_BOARD) {
             // First check if oldestTile has legions on it
-            uint oldestTileId = uint(DoubleEndedQueue.front(tileQueue));
+            uint oldestTileId = uint(DoubleEndedQueue.front(tilesOnBoardQueue));
             Coords memory oCoords = mapTileIdToCell[oldestTileId];
             Cell memory oldestTileCell = playersBoards[msg.sender][oCoords.x][oCoords.y];
 
@@ -509,7 +479,7 @@ contract CorruptionCrypts is Initializable, MapTiles, CorruptionCryptsState, Cor
                 revert("Max MapTiles reached, cannot remove oldest MapTile as there are legions on it");
             }
 
-            bytes32 _oldestTileId = DoubleEndedQueue.popFront(tileQueue);
+            bytes32 _oldestTileId = DoubleEndedQueue.popFront(tilesOnBoardQueue);
             // console.log(">4 tiles on board, removing oldest tileId: ", uint(_oldestTileId));
             Coords memory mtileOldest = mapTileIdToCell[uint(_oldestTileId)];
             _removeMapTile(mtileOldest.x, mtileOldest.y, uint(_oldestTileId));
@@ -522,10 +492,8 @@ contract CorruptionCrypts is Initializable, MapTiles, CorruptionCryptsState, Cor
 
         mapTileIdToCell[mtile.tileId] = Coords({ x: coords.x, y: coords.y });
 
-        bytes32 tidNewest = bytes32(mtile.tileId);
-        // console.log("tileId_Newest: ", uint(tidNewest));
-
-        DoubleEndedQueue.pushBack(tileQueue, tidNewest);
+        bytes32 tileIdNewest = bytes32(uint256(mtile.tileId));
+        DoubleEndedQueue.pushBack(tilesOnBoardQueue, tileIdNewest);
     }
 
     function _removeMapTile(uint x_row, uint y_col, uint tileId) internal {
@@ -534,11 +502,16 @@ contract CorruptionCrypts is Initializable, MapTiles, CorruptionCryptsState, Cor
         mapTileIdToCell[tileId].y = 0;
     }
 
-    function getMapTile(uint mapTileId) public returns (MapTile memory) {
+    function getMapTile(uint8 mapTileId) public returns (MapTile memory) {
+        MapTile memory mtile = _getMapTile(mapTileId);
+        emit ViewMapTile(mtile.tileId, mtile.moves, mtile.north, mtile.east, mtile.south, mtile.west);
+        return mtile;
+    }
+
+    function _getMapTile(uint8 mapTileId) internal returns (MapTile memory) {
         // tileId is 1-indexed, subtract 1 to get 0-indexed maptile
         require(mapTileId > 0, "MapTileId cannot be less than 1");
         MapTile memory mtile = mapTiles[mapTileId-1];
-        emit ViewMapTile(mtile.tileId, mtile.moves, mtile.north, mtile.east, mtile.south, mtile.west);
         return mtile;
     }
 

@@ -7,8 +7,8 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 contract MapTiles is Initializable {
 
     struct MapTile {
-        uint tileId;
-        uint moves;
+        uint8 tileId;
+        uint8 moves;
         bool north;
         bool east;
         bool south;
@@ -16,12 +16,13 @@ contract MapTiles is Initializable {
         // directions of roads on each MapTile
     }
 
-    mapping(uint256 => MapTile) public mapTiles;
+    mapping(uint8 => MapTile) public mapTiles;
 
     function initMapTiles() internal {
 
         // See https://boardgamegeek.com/image/3128699/karuba
         // for the tile road directions
+
         mapTiles[0] = MapTile({
             tileId: 1,
             moves: 2,

@@ -18,7 +18,10 @@ abstract contract CorruptionCryptsShuffler is Initializable, CorruptionCryptsSet
         CorruptionCryptsSettings.__CorruptionCryptsSettings_init();
     }
 
-    function drawRandomMapTileId(uint _requestId) public view returns (uint) {
+    function drawRandomMapTileIds(
+        uint _requestId,
+        uint8 _amount
+    ) public view returns (uint8[] memory) {
 
         // uint256 _randomNumber = appStorage.randomizer.revealRandomNumber(_requestId);
         // Figure out how to use real randomizer......
@@ -26,9 +29,28 @@ abstract contract CorruptionCryptsShuffler is Initializable, CorruptionCryptsSet
             609697701829039857854141943741550340)));
         _randomNumber = shittyRandom.requestRandomNumber(_randomNumber);
 
-        uint256 mapTileId = _randomNumber % NUM_MAPTILES + 1;
-        // +1 because maptiles must be 1 - 32
-        return mapTileId;
+        // maptiles must be 1 ~ 32
+        uint8 _numMapTiles = 32;
+        uint8[32] memory _tileIds = [
+            1, 2, 3, 4, 5, 6, 7, 8,
+            9, 10, 11, 12, 13, 14, 15, 16,
+            17, 18, 19, 20, 21, 22, 23, 24,
+            25, 26, 27, 28, 29, 30, 31, 32
+        ];
+
+        uint8[] memory _pickedMapTileIds = new uint8[](_amount);
+
+        for(uint256 i = 0; i < _amount; i++) {
+            uint256 _cell = _randomNumber % _numMapTiles;
+            _pickedMapTileIds[i] = _tileIds[_cell];
+            _randomNumber >>= 8;
+            _numMapTiles--;
+            if(_cell != _numMapTiles) {
+                _tileIds[_cell] = _tileIds[_numMapTiles];
+            }
+        }
+
+        return _pickedMapTileIds;
     }
 
 

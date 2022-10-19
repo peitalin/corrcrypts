@@ -3,19 +3,19 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
-import "./CorruptionCryptsState.sol";
+import "./CorruptionCryptsGlobalState.sol";
 
-abstract contract CorruptionCryptsContracts is Initializable, CorruptionCryptsState {
+abstract contract CorruptionCryptsContracts is Initializable, CorruptionCryptsGlobalState {
 
     function __CorruptionCryptsContracts_init() internal initializer {
-        CorruptionCryptsState.__CorruptionCryptsState_init();
+        CorruptionCryptsGlobalState.__CorruptionCryptsGlobalState_init();
     }
 
     function setContracts(
         // address _legionAddress,
         // address _legionMetadataStoreAddress,
         address _randomizerAddress
-    ) external onlyAdminOrOwner {
+    ) external onlyOwner {
         // appStorage.legion = ILegion(_legionAddress);
         // appStorage.legionMetadataStore = ILegionMetadataStore(_legionMetadataStoreAddress);
         appStorage.randomizer = IRandomizer(_randomizerAddress);

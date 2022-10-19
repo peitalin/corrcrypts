@@ -4,6 +4,7 @@ import { ethers, deployments } from "hardhat";
 import { BigNumber, Contract } from "ethers";
 import { randomBytes, Result } from "ethers/lib/utils";
 
+import * as Utilities from "./utils";
 import { MockTreasure } from "../typechain-types/MockTreasure";
 import { LegionMetadataStore, Randomizer, CorruptionCrypts } from "../typechain-types";
 import { MapTiles, CoordsStruct } from "../typechain-types/CorruptionCrypts";
@@ -12,6 +13,14 @@ import { MapTiles, CoordsStruct } from "../typechain-types/CorruptionCrypts";
 let CorruptionCrypts: CorruptionCrypts;
 let decoder = new ethers.utils.AbiCoder();
 
+export async function getDeployedContract<T extends Contract>(name: string, deployer: SignerWithAddress) : Promise<T> {
+    const deployment = await deployments.get(name);
+    return new Contract(
+        deployment.address,
+        deployment.abi,
+        deployer
+    ) as T;
+}
 
 enum LegionSquadId {
     None,
@@ -35,10 +44,13 @@ enum Temple {
     Harvester9
 }
 
+const DEBUG_PRINT = true;
+
 
 describe("CorruptionCrypts", function () {
 
     let _ownerWallet: SignerWithAddress;
+    let player1Wallet: SignerWithAddress;
 
     let CorruptionCryptsContractFactory;
     let CCrypts: CorruptionCrypts;
@@ -47,25 +59,134 @@ describe("CorruptionCrypts", function () {
 
 
     beforeEach(async () => {
-        // Utilities.changeAutomineEnabled(true);
 
         let signers = await ethers.getSigners();
         _ownerWallet = signers[0];
+        player1Wallet = signers[1];
 
         await deployments.fixture(['deployments'], { fallbackToGlobal: false });
 
-        CorruptionCryptsContractFactory = await ethers.getContractFactory("CorruptionCrypts");
+        // CCrypts = await getDeployedContract('CorruptionCrypts', _ownerWallet);
+
+        CorruptionCryptsContractFactory = await ethers.getContractFactory(
+            "CorruptionCrypts",
+            _ownerWallet.address,
+        );
         CCrypts = await CorruptionCryptsContractFactory.deploy();
+        await CCrypts.deployed();
 
-        randomizerContractFactory = await ethers.getContractFactory("Randomizer", _ownerWallet);
-        randomizer = await randomizerContractFactory.deploy();
-        await randomizer.requestRandomNumber();
-
+        // manually call initialize
         await CCrypts.initialize();
-        await CCrypts.setupBoardForPlayer();
 
+        await CCrypts.addAdmin(_ownerWallet.address)
+        console.log("\nOwner of CCrypts:\t", await CCrypts.owner())
+        console.log("signer of CCrypts:\t", await CCrypts.signer.getAddress())
+        console.log("_ownerWallet:\t\t", _ownerWallet.address)
+        console.log(`isAdmin of CCrypts:\t${await CCrypts.isAdmin(_ownerWallet.address)}\n`)
+
+        await CCrypts.setupBoardForPlayer();
     });
 
+
+    it("As Epochs advance over time, player draws the correct #MapTiles", async function () {
+
+        const convertPendingMapTiles = (d: Result): MapTileTS => ({
+            tileId: d[0],
+            moves: d[1],
+            north: d[2],
+            east: d[3],
+            south: d[4],
+            west: d[5],
+        })
+
+        // random int between 0 ~ 100
+        let requestId0 = Math.round(Math.random() * 100);
+        let requestId1 = Math.round(Math.random() * 100);
+        let requestId2 = Math.round(Math.random() * 100);
+        let requestId3 = Math.round(Math.random() * 100);
+
+        //////////////////////////////////////////////////////
+        // Epoch 0: 1 card to draw on Epoch 0
+        //////////////////////////////////////////////////////
+
+        await (await CCrypts.connect(_ownerWallet)._testSetCurrentEpoch(0))?.wait()
+
+        let drawnPendingMaptiles0 = (decodeTx({
+            eventName: "ViewPendingMapTiles",
+            eventType: ['(uint8,uint8,bool,bool,bool,bool)[]'],
+            tx: await (await CCrypts.drawPendingMapTiles(requestId0))?.wait(),
+        })?.[0] ?? []).map((d: any) => convertPendingMapTiles(d))
+
+
+        expect(drawnPendingMaptiles0.length).to.equal(1);
+        drawnPendingMaptiles0.map((d: any) => {
+            expect(d).to.have.all.keys('tileId', 'moves', 'north', 'east', 'south', 'west');
+        })
+
+        //////////////////////////////////////////////////////
+        // Epoch 0: Trying to draw more cards reverts
+        //////////////////////////////////////////////////////
+
+        await expect(CCrypts.drawPendingMapTiles(requestId1))
+            .to.be.revertedWith('Player already moved this epoch');
+
+        //////////////////////////////////////////////////////
+        // Epoch 2: fast foward 9hrs, and advance epoch twice to Epoch 2
+        // draw 2 new MapTiles
+        //////////////////////////////////////////////////////
+
+        Utilities.increaseTime(60 * 60 * 9)
+        await (await CCrypts.advanceEpoch())?.wait()
+
+        let drawnPendingMaptiles2 = (decodeTx({
+            eventName: "ViewPendingMapTiles",
+            eventType: ['(uint8,uint8,bool,bool,bool,bool)[]'],
+            tx: await (await CCrypts.drawPendingMapTiles(requestId2))?.wait(),
+        })?.[0] ?? []).map((d: any) => convertPendingMapTiles(d))
+
+        expect(drawnPendingMaptiles2.length).to.equal(2);
+        drawnPendingMaptiles2.map((d: any) => {
+            expect(d).to.have.all.keys('tileId', 'moves', 'north', 'east', 'south', 'west');
+        })
+        debugPrint('drawnPendingMaptiles2: ', drawnPendingMaptiles2)
+
+        //////////////////////////////////////////////////////
+        // Epoch 7: fast foward 33hrs,
+        // epoch advanced 8x but only 5 MapTiles can be drawn
+        //////////////////////////////////////////////////////
+
+        Utilities.increaseTime(60 * 60 * 33)
+        let tx1 = await (await CCrypts.advanceEpoch())?.wait()
+
+        let drawnPendingMaptiles3 = (decodeTx({
+            eventName: "ViewPendingMapTiles",
+            eventType: ['(uint8,uint8,bool,bool,bool,bool)[]'],
+            tx: await (await CCrypts.drawPendingMapTiles(requestId3))?.wait(),
+        })?.[0] ?? []).map((d: any) => convertPendingMapTiles(d))
+
+        let advancedEpoch = decodeTx({
+            eventName: "AdvancedEpoch",
+            eventType: ['(uint8, uint8)'],
+            tx: tx1,
+        }).map((d: any) => {
+            return {
+                currentEpoch: d[0],
+                numTimesToAdvance: d[1]
+            }
+        })?.[0]
+
+        debugPrint('drawnPendingMaptiles3', drawnPendingMaptiles3)
+        debugPrint('advancedEpoch', advancedEpoch)
+
+        // Even though we advanced 8 epochs (33 / 4 hrs)
+        // only 5 maximum MapTiles can be built up and drawn
+        expect(advancedEpoch.numTimesToAdvance).to.equal(8);
+        expect(drawnPendingMaptiles3.length).to.equal(5);
+        drawnPendingMaptiles3.map((d: any) => {
+            expect(d).to.have.all.keys('tileId', 'moves', 'north', 'east', 'south', 'west');
+        })
+
+    });
 
 
     it("Places Maptiles and moves Legions, validating moves", async function () {
@@ -193,7 +314,7 @@ describe("CorruptionCrypts", function () {
         // cannot stack 2 legionSquads by the same player
         await expect(
             CCrypts.moveLegionAcrossBoard([ coord6, coord7 ], legionSquad2.squadNumber)
-        ).to.be.revertedWith("Cannot stack two legion squads on top of the same MapTile");
+        ).to.be.revertedWith("Cannot stack two legion squads on the same MapTile");
         printBoard(CCrypts);
         await new Promise(resolve => setTimeout(resolve, 500));
 
@@ -202,29 +323,15 @@ describe("CorruptionCrypts", function () {
         printBoard(CCrypts);
         await new Promise(resolve => setTimeout(resolve, 500));
 
-        // 14. move legionSquad1 from temple destination
+        // 16. move legionSquad1 from temple destination
         await CCrypts.moveLegionAcrossBoard([ coord7, coord8 ], legionSquad1.squadNumber)
         printBoard(CCrypts);
         await new Promise(resolve => setTimeout(resolve, 500));
 
         /// Need to move to squads, to handle over lap
-
         await new Promise(resolve => setTimeout(resolve, 1000));
-        console.log("Simulation Ended")
+        debugPrint("Simulation Ended")
     });
-
-
-
-    // it("Draw Random MapTile", async function () {
-    //     // await Utilities.setRandomNumber(randomizer,
-    //     //     BigNumber.from("4674918036648658668720998992708126850715829851530094636346412426577282184681"));
-
-    //     // await(await randomizer.requestRandomNumber()).wait();
-    //     // let _requestId = 0;
-    //     // let isRandomReady = await randomizer.isRandomReady(_requestId);
-    //     // console.log("isRandomReady: ", isRandomReady);
-    //     await CCrypts.drawRandomMapTile(12);
-    // });
 
 
     // it("Print Board Cell", async function () {
@@ -464,3 +571,7 @@ describe("CorruptionCrypts", function () {
     }
 });
 
+
+const debugPrint = (msg?: any, ...optional: any) => {
+    DEBUG_PRINT ? console.log(msg, ...optional) : undefined
+}
