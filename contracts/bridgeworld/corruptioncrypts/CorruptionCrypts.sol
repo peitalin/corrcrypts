@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts/utils/structs/DoubleEndedQueue.sol";
+import "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
 
 import "../legionmetadatastore/ILegionMetadataStore.sol";
 import "./CorruptionCryptsGlobalState.sol";
@@ -56,22 +57,25 @@ struct Coords {
     uint8 y;
 }
 
-enum Temple {
-    None,
-    ForbiddenCrafts,
-    Harvester1,
-    Harvester2,
-    Harvester3,
-    Harvester4,
-    Harvester5,
-    Harvester6,
-    Harvester7,
-    Harvester8,
-    Harvester9
+struct PendingMove {
+    uint epoch;
+    uint8 tileId;
+    uint8 moves;
+    bool north;
+    bool east;
+    bool south;
+    bool west;
+}
+
+struct PlayerMove {
+    Coords[] coords;
+    MoveType moveType;
+    uint epoch;
+    uint8 tileId;
 }
 
 enum MoveType {
-    PlaceTile,
+    PlaceMapTile,
     MoveLegion,
     None
 }
@@ -91,6 +95,13 @@ contract CorruptionCrypts is Initializable, MapTiles, OwnableUpgradeable, Corrup
     mapping(address => mapping(LegionSquadId => LegionSquad)) playerLegionSquads;
     // playerAddress => LegionSquadId(0-3) => LegionSquad
     /// We will batch legions into squads and have them move around the map
+
+    mapping(address => PendingMove[]) currentHandOfMoves;
+    // mapping(address => mapping(uint => MapTile)) currentHandOfMapTiles;
+
+    // Each player has a "hand" of drawn maptiles, he must first use up all these
+    // maptiles before he can draw another hand of maptiles (up to 6 max)
+    // if he does not, the Epochs keep advancing and he starts missing out on turns
 
     // keep a record of MapTiles on the board and ability to look up their cell
     // these maptiles are on (so that we can remove it)
@@ -127,7 +138,7 @@ contract CorruptionCrypts is Initializable, MapTiles, OwnableUpgradeable, Corrup
 
     event ViewCell(uint256, uint256[], LegionSquadId, uint[], Temple);
     event ViewMapTile(uint, uint, bool, bool, bool, bool);
-    event ViewPendingMapTiles(MapTile[]);
+    event ViewPendingMoves(PendingMove[]); // Player's pending moves in this hand
     event SetupBoardEvent(address);
 
     event PlayerLegionsReachedTemple(uint[], Temple);
@@ -143,11 +154,16 @@ contract CorruptionCrypts is Initializable, MapTiles, OwnableUpgradeable, Corrup
         MapTiles.initMapTiles();
     }
 
-    function drawPendingMapTiles(uint _requestId)
+    function drawMapTilesForPreviousEpochs(uint _requestId)
         external
         tryAdvanceEpoch
-        returns (MapTile[] memory)
+        returns (PendingMove[] memory)
     {
+
+        require(
+            currentHandOfMoves[msg.sender].length == 0,
+            "Player has existing maptiles that must be used before drawing more MapTiles"
+        );
 
         uint8 numPendingMoves = _calculatePendingMoves();
         // see how many moves have built up for the player over time
@@ -157,13 +173,61 @@ contract CorruptionCrypts is Initializable, MapTiles, OwnableUpgradeable, Corrup
             _requestId,
             numPendingMoves
         );
-        MapTile[] memory drawnMapTiles = new MapTile[](numPendingMoves);
 
-        for (uint j = 0; j < numPendingMoves; j++) {
-            drawnMapTiles[j] = getMapTile(mapTileIds[j]);
+        for (uint offset = 0; offset < numPendingMoves; offset++) {
+
+            MapTile memory drawnMapTile = getMapTile(mapTileIds[offset]);
+
+            PendingMove memory pendingMove = PendingMove({
+                epoch: currentEpoch - offset,
+                tileId: mapTileIds[offset],
+                moves: drawnMapTile.moves,
+                north: drawnMapTile.north,
+                east: drawnMapTile.east,
+                south: drawnMapTile.south,
+                west: drawnMapTile.west
+            });
+            currentHandOfMoves[msg.sender].push(pendingMove);
         }
-        emit ViewPendingMapTiles(drawnMapTiles);
-        return drawnMapTiles;
+
+        emit ViewPendingMoves(currentHandOfMoves[msg.sender]);
+
+        return currentHandOfMoves[msg.sender];
+    }
+
+
+    function useCurrentHandOfMapTiles(PlayerMove[] calldata moves) public {
+
+        PendingMove[] memory currentHand = currentHandOfMoves[msg.sender];
+
+        for (uint i = 0; i < moves.length; i++) {
+
+            PlayerMove memory move = moves[i];
+            require(
+                move.epoch == currentHand[i].epoch,
+                "epoch mismatch when submitting moves"
+            );
+            // require(
+            //     move.tileId == currentHand[i].tileId,
+            //     "tileId mismatch when submitting moves"
+            // );
+
+            console.log("move.epoch: ", move.epoch);
+            if (move.moveType == MoveType.PlaceMapTile) {
+                console.log("Placing maptile tileId: ", move.tileId);
+                // place mapTile
+
+            }
+            if (move.moveType == MoveType.MoveLegion) {
+                console.log("Moving legion with tileId: ", move.tileId);
+            }
+        }
+        // empty player's hand
+        delete currentHandOfMoves[msg.sender];
+
+        // mark all previous epochs in the last day which the player has skipped
+        // as already-moved so player cannot double draw 6+6 maptiles
+        _markPreviousEpochsAsUsed();
     }
 
 
@@ -208,53 +272,18 @@ contract CorruptionCrypts is Initializable, MapTiles, OwnableUpgradeable, Corrup
         }
 
         uint randInt = block.timestamp;
-        uint8 NUM_HARVESTERS = 4;
         uint8[2][] memory templeLocations = CorruptionCryptsShuffler._pickRandomUniqueTempleCoordinates(
-            NUM_HARVESTERS + 1,
+            NUM_HARVESTERS,
             randInt
         );
         uint numTemples = templeLocations.length;
-        require(numTemples == NUM_HARVESTERS + 1, "number of random coords for numTemples mismatched");
+        require(numTemples == NUM_HARVESTERS, "number of random coords for numTemples mismatched");
+
         // new temple locations
-        uint8[2] memory t0 = templeLocations[0];
-
-        globalTempleLocations[t0[0]][t0[1]] = Temple.ForbiddenCrafts;
-
-        if (NUM_HARVESTERS >= 1) {
-            uint8[2] memory t1 = templeLocations[1];
-            globalTempleLocations[t1[0]][t1[1]] = Temple.Harvester1;
-        }
-        if (NUM_HARVESTERS >= 2) {
-            uint8[2] memory t2 = templeLocations[2];
-            globalTempleLocations[t2[0]][t2[1]] = Temple.Harvester2;
-        }
-        if (NUM_HARVESTERS >= 3) {
-            uint8[2] memory t3 = templeLocations[3];
-            globalTempleLocations[t3[0]][t3[1]] = Temple.Harvester3;
-        }
-        if (NUM_HARVESTERS >= 4) {
-            uint8[2] memory t4 = templeLocations[4];
-            globalTempleLocations[t4[0]][t4[1]] = Temple.Harvester4;
-        }
-        if (NUM_HARVESTERS >= 5) {
-            uint8[2] memory t5 = templeLocations[5];
-            globalTempleLocations[t5[0]][t5[1]] = Temple.Harvester5;
-        }
-        if (NUM_HARVESTERS >= 6) {
-            uint8[2] memory t6 = templeLocations[6];
-            globalTempleLocations[t6[0]][t6[1]] = Temple.Harvester6;
-        }
-        if (NUM_HARVESTERS >= 7) {
-            uint8[2] memory t7 = templeLocations[7];
-            globalTempleLocations[t7[0]][t7[1]] = Temple.Harvester7;
-        }
-        if (NUM_HARVESTERS >= 8) {
-            uint8[2] memory t8 = templeLocations[8];
-            globalTempleLocations[t8[0]][t8[1]] = Temple.Harvester8;
-        }
-        if (NUM_HARVESTERS >= 9) {
-            uint8[2] memory t9 = templeLocations[9];
-            globalTempleLocations[t9[0]][t9[1]] = Temple.Harvester9;
+        for (uint t = 0; t < NUM_HARVESTERS; t++) {
+            uint8[2] memory templeCoords = templeLocations[t];
+            Temple temple = getTempleHarvester(t);
+            globalTempleLocations[templeCoords[0]][templeCoords[1]] = temple;
         }
     }
 

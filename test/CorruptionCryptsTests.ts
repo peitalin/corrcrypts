@@ -44,6 +44,14 @@ enum Temple {
     Harvester9
 }
 
+
+enum MoveType {
+    PlaceMapTile,
+    MoveLegion,
+    None
+}
+
+
 const DEBUG_PRINT = true;
 
 
@@ -68,19 +76,16 @@ describe("CorruptionCrypts", function () {
 
         // CCrypts = await getDeployedContract('CorruptionCrypts', _ownerWallet);
 
-        CorruptionCryptsContractFactory = await ethers.getContractFactory(
-            "CorruptionCrypts",
-            _ownerWallet.address,
-        );
+        CorruptionCryptsContractFactory = await ethers.getContractFactory("CorruptionCrypts");
         CCrypts = await CorruptionCryptsContractFactory.deploy();
         await CCrypts.deployed();
 
-        // manually call initialize
+        // manually call initialize to set msg.sender as owner
         await CCrypts.initialize();
 
         await CCrypts.addAdmin(_ownerWallet.address)
         console.log("\nOwner of CCrypts:\t", await CCrypts.owner())
-        console.log("signer of CCrypts:\t", await CCrypts.signer.getAddress())
+        console.log("Signer of CCrypts:\t", await CCrypts.signer.getAddress())
         console.log("_ownerWallet:\t\t", _ownerWallet.address)
         console.log(`isAdmin of CCrypts:\t${await CCrypts.isAdmin(_ownerWallet.address)}\n`)
 
@@ -88,16 +93,111 @@ describe("CorruptionCrypts", function () {
     });
 
 
-    it("As Epochs advance over time, player draws the correct #MapTiles", async function () {
+    // it("As Epochs advance over time, player draws the correct #MapTiles", async function () {
 
-        const convertPendingMapTiles = (d: Result): MapTileTS => ({
-            tileId: d[0],
-            moves: d[1],
-            north: d[2],
-            east: d[3],
-            south: d[4],
-            west: d[5],
-        })
+    //     const convertPendingMapTiles = (d: Result): MapTileTS => ({
+    //         tileId: d[0],
+    //         moves: d[1],
+    //         north: d[2],
+    //         east: d[3],
+    //         south: d[4],
+    //         west: d[5],
+    //     })
+
+    //     // random int between 0 ~ 100
+    //     let requestId0 = Math.round(Math.random() * 100);
+    //     let requestId1 = Math.round(Math.random() * 100);
+    //     let requestId2 = Math.round(Math.random() * 100);
+    //     let requestId3 = Math.round(Math.random() * 100);
+
+    //     //////////////////////////////////////////////////////
+    //     // Epoch 0: 1 card to draw on Epoch 0
+    //     //////////////////////////////////////////////////////
+
+    //     await (await CCrypts.connect(_ownerWallet)._testSetCurrentEpoch(0))?.wait()
+
+    //     let drawnPendingMaptiles0 = (decodeTx({
+    //         eventName: "ViewPendingMoves",
+        //     eventType: ['(uint,uint,uint,bool,bool,bool,bool)[]'],
+    //         tx: await (await CCrypts.drawMapTilesForPreviousEpochs(requestId0))?.wait(),
+    //     })?.[0] ?? []).map((d: any) => convertPendingMapTiles(d))
+
+
+    //     expect(drawnPendingMaptiles0.length).to.equal(1);
+    //     drawnPendingMaptiles0.map((d: any) => {
+    //         expect(d).to.have.all.keys('epoch', 'tileId', 'moves', 'north', 'east', 'south', 'west');
+    //     })
+
+    //     //////////////////////////////////////////////////////
+    //     // Epoch 0: Trying to draw more cards reverts
+    //     //////////////////////////////////////////////////////
+
+    //     await expect(CCrypts.drawMapTilesForPreviousEpochs(requestId1))
+    //         .to.be.revertedWith('Player already moved this epoch');
+
+    //     //////////////////////////////////////////////////////
+    //     // Epoch 2: fast foward 9hrs, and advance epoch twice to Epoch 2
+    //     // draw 2 new MapTiles
+    //     //////////////////////////////////////////////////////
+
+    //     Utilities.increaseTime(60 * 60 * 9)
+    //     await (await CCrypts.advanceManyEpochsToPresent())?.wait()
+
+    //     let drawnPendingMaptiles2 = (decodeTx({
+    //         eventName: "ViewPendingMoves",
+        //     eventType: ['(uint,uint,uint,bool,bool,bool,bool)[]'],
+    //         tx: await (await CCrypts.drawMapTilesForPreviousEpochs(requestId2))?.wait(),
+    //     })?.[0] ?? []).map((d: any) => convertPendingMapTiles(d))
+
+    //     expect(drawnPendingMaptiles2.length).to.equal(2);
+    //     drawnPendingMaptiles2.map((d: any) => {
+    //         expect(d).to.have.all.keys('epoch', 'tileId', 'moves', 'north', 'east', 'south', 'west');
+    //     })
+    //     debugPrint('drawnPendingMaptiles2: ', drawnPendingMaptiles2)
+
+    //     //////////////////////////////////////////////////////
+    //     // Epoch 7: fast foward 33hrs,
+    //     // epoch advanced 8x but only 5 MapTiles can be drawn
+    //     //////////////////////////////////////////////////////
+
+    //     Utilities.increaseTime(60 * 60 * 33)
+    //     let tx1 = await (await CCrypts.advanceManyEpochsToPresent())?.wait()
+
+    //     let drawnPendingMaptiles3 = (decodeTx({
+    //         eventName: "ViewPendingMoves",
+    //         eventType: ['(uint,uint,uint,bool,bool,bool,bool)[]'],
+    //         tx: await (await CCrypts.drawMapTilesForPreviousEpochs(requestId3))?.wait(),
+    //     })?.[0] ?? []).map((d: any) => convertPendingMapTiles(d))
+
+    //     let advancedEpoch = decodeTx({
+    //         eventName: "AdvancedEpoch",
+    //         eventType: ['(uint8, uint8)'],
+    //         tx: tx1,
+    //     }).map((d: any) => {
+    //         return {
+    //             currentEpoch: d[0],
+    //             numTimesToAdvance: d[1]
+    //         }
+    //     })?.[0]
+
+    //     debugPrint('drawnPendingMaptiles3', drawnPendingMaptiles3)
+    //     debugPrint('advancedEpoch', advancedEpoch)
+
+    //     // Even though we advanced 8 epochs (33 / 4 hrs)
+    //     // only 6 maximum MapTiles can be built up and drawn
+    //     expect(advancedEpoch.numTimesToAdvance).to.equal(8);
+    //     expect(drawnPendingMaptiles3.length).to.equal(6);
+    //     drawnPendingMaptiles3.map((d: any) => {
+    //         expect(d).to.have.all.keys('epoch', 'tileId', 'moves', 'north', 'east', 'south', 'west');
+    //     })
+
+    // });
+
+
+
+
+    it("Drawing 6 MapTiles at a time", async function () {
+
 
         // random int between 0 ~ 100
         let requestId0 = Math.round(Math.random() * 100);
@@ -105,63 +205,66 @@ describe("CorruptionCrypts", function () {
         let requestId2 = Math.round(Math.random() * 100);
         let requestId3 = Math.round(Math.random() * 100);
 
-        //////////////////////////////////////////////////////
-        // Epoch 0: 1 card to draw on Epoch 0
-        //////////////////////////////////////////////////////
-
-        await (await CCrypts.connect(_ownerWallet)._testSetCurrentEpoch(0))?.wait()
-
-        let drawnPendingMaptiles0 = (decodeTx({
-            eventName: "ViewPendingMapTiles",
-            eventType: ['(uint8,uint8,bool,bool,bool,bool)[]'],
-            tx: await (await CCrypts.drawPendingMapTiles(requestId0))?.wait(),
-        })?.[0] ?? []).map((d: any) => convertPendingMapTiles(d))
-
-
-        expect(drawnPendingMaptiles0.length).to.equal(1);
-        drawnPendingMaptiles0.map((d: any) => {
-            expect(d).to.have.all.keys('tileId', 'moves', 'north', 'east', 'south', 'west');
-        })
-
-        //////////////////////////////////////////////////////
-        // Epoch 0: Trying to draw more cards reverts
-        //////////////////////////////////////////////////////
-
-        await expect(CCrypts.drawPendingMapTiles(requestId1))
-            .to.be.revertedWith('Player already moved this epoch');
 
         //////////////////////////////////////////////////////
         // Epoch 2: fast foward 9hrs, and advance epoch twice to Epoch 2
-        // draw 2 new MapTiles
+        // draw 3 MapTiles
         //////////////////////////////////////////////////////
 
         Utilities.increaseTime(60 * 60 * 9)
-        await (await CCrypts.advanceEpoch())?.wait()
+        await (await CCrypts.advanceManyEpochsToPresent())?.wait()
 
         let drawnPendingMaptiles2 = (decodeTx({
-            eventName: "ViewPendingMapTiles",
-            eventType: ['(uint8,uint8,bool,bool,bool,bool)[]'],
-            tx: await (await CCrypts.drawPendingMapTiles(requestId2))?.wait(),
+            eventName: "ViewPendingMoves",
+            eventType: ['(uint,uint,uint,bool,bool,bool,bool)[]'],
+            tx: await (await CCrypts.drawMapTilesForPreviousEpochs(requestId2))?.wait(),
         })?.[0] ?? []).map((d: any) => convertPendingMapTiles(d))
 
-        expect(drawnPendingMaptiles2.length).to.equal(2);
+        expect(drawnPendingMaptiles2.length).to.equal(3);
         drawnPendingMaptiles2.map((d: any) => {
-            expect(d).to.have.all.keys('tileId', 'moves', 'north', 'east', 'south', 'west');
+            expect(d).to.have.all.keys('epoch', 'tileId', 'moves', 'north', 'east', 'south', 'west');
         })
-        debugPrint('drawnPendingMaptiles2: ', drawnPendingMaptiles2)
+        // debugPrint('drawnPendingMaptiles2: ', drawnPendingMaptiles2)
 
         //////////////////////////////////////////////////////
         // Epoch 7: fast foward 33hrs,
-        // epoch advanced 8x but only 5 MapTiles can be drawn
+        // epoch advanced 8x but only 6 MapTiles can be drawn
         //////////////////////////////////////////////////////
 
+        await (await CCrypts.useCurrentHandOfMapTiles([
+            {
+                coords: [
+                    { x: 0, y: 0 }
+                ],
+                moveType: MoveType.PlaceMapTile,
+                epoch: 2,
+                tileId: 10,
+            },
+            {
+                coords: [
+                    { x: 1, y: 0 }
+                ],
+                moveType: MoveType.PlaceMapTile,
+                epoch: 1,
+                tileId: 11,
+            },
+            {
+                coords: [
+                    { x: 1, y: 2 }
+                ],
+                moveType: MoveType.PlaceMapTile,
+                epoch: 0,
+                tileId: 12,
+            },
+        ])).wait();
+
         Utilities.increaseTime(60 * 60 * 33)
-        let tx1 = await (await CCrypts.advanceEpoch())?.wait()
+        let tx1 = await (await CCrypts.advanceManyEpochsToPresent())?.wait()
 
         let drawnPendingMaptiles3 = (decodeTx({
-            eventName: "ViewPendingMapTiles",
-            eventType: ['(uint8,uint8,bool,bool,bool,bool)[]'],
-            tx: await (await CCrypts.drawPendingMapTiles(requestId3))?.wait(),
+            eventName: "ViewPendingMoves",
+            eventType: ['(uint,uint,uint,bool,bool,bool,bool)[]'],
+            tx: await (await CCrypts.drawMapTilesForPreviousEpochs(requestId3))?.wait(),
         })?.[0] ?? []).map((d: any) => convertPendingMapTiles(d))
 
         let advancedEpoch = decodeTx({
@@ -175,163 +278,173 @@ describe("CorruptionCrypts", function () {
             }
         })?.[0]
 
-        debugPrint('drawnPendingMaptiles3', drawnPendingMaptiles3)
-        debugPrint('advancedEpoch', advancedEpoch)
+        // debugPrint('drawnPendingMaptiles3', drawnPendingMaptiles3)
+        // debugPrint('advancedEpoch', advancedEpoch)
 
         // Even though we advanced 8 epochs (33 / 4 hrs)
-        // only 5 maximum MapTiles can be built up and drawn
+        // only 6 maximum MapTiles can be built up and drawn
         expect(advancedEpoch.numTimesToAdvance).to.equal(8);
-        expect(drawnPendingMaptiles3.length).to.equal(5);
+        expect(drawnPendingMaptiles3.length).to.equal(6);
         drawnPendingMaptiles3.map((d: any) => {
-            expect(d).to.have.all.keys('tileId', 'moves', 'north', 'east', 'south', 'west');
+            expect(d).to.have.all.keys('epoch', 'tileId', 'moves', 'north', 'east', 'south', 'west');
         })
 
     });
 
 
-    it("Places Maptiles and moves Legions, validating moves", async function () {
-
-        let coord1: CoordsStruct = { "x": 0, "y": 0 }
-        let coord2: CoordsStruct = { "x": 1, "y": 0 }
-        let coord3: CoordsStruct = { "x": 1, "y": 1 }
-        let coord4: CoordsStruct = { "x": 1, "y": 2 }
-        let coord5: CoordsStruct = { "x": 2, "y": 2 }
-        let coord6: CoordsStruct = { "x": 2, "y": 3 }
-        let coord7: CoordsStruct = { "x": 2, "y": 4 }
-        let coord8: CoordsStruct = { "x": 3, "y": 4 }
-
-        // 1. Print Empty Board
-        printBoard(CCrypts);
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        // 2. place tiles
-        await CCrypts.placeMapTileOnBoard(1, coord1);
-        await CCrypts.placeMapTileOnBoard(6, coord2);
-        await CCrypts.placeMapTileOnBoard(29, coord3);
-        await CCrypts.placeMapTileOnBoard(27, coord4);
-
-        printBoard(CCrypts);
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-        const legionSquad1 = {
-            squadNumber: LegionSquadId.Squad1,
-            legionIds: [1111, 1502, 345]
-        }
-        const legionSquad2 = {
-            squadNumber: LegionSquadId.Squad2,
-            legionIds: [22, 33, 44, 55, 66]
-        }
 
 
-        // 3a. Move squad 1 across the board
-        await CCrypts.assignLegionSquadsAndPlaceOnMap(
-            coord1,
-            legionSquad1.squadNumber,
-            legionSquad1.legionIds,
-            Temple.ForbiddenCrafts,
-        );
-        printBoard(CCrypts);
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-        await CCrypts.moveLegionAcrossBoard([ coord1, coord2 ], legionSquad1.squadNumber)
-        printBoard(CCrypts);
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-        await CCrypts.moveLegionAcrossBoard([ coord2, coord3 ], legionSquad1.squadNumber)
-        printBoard(CCrypts);
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-        await CCrypts.moveLegionAcrossBoard([ coord3, coord4 ], legionSquad1.squadNumber)
-        printBoard(CCrypts);
-        await new Promise(resolve => setTimeout(resolve, 500));
 
 
-        // 4a. Move squad 2 across the board
-        await CCrypts.assignLegionSquadsAndPlaceOnMap(
-            coord1,
-            legionSquad2.squadNumber,
-            legionSquad2.legionIds,
-            Temple.Harvester1,
-        );
-        printBoard(CCrypts);
-        await new Promise(resolve => setTimeout(resolve, 500));
-        await CCrypts.moveLegionAcrossBoard([ coord1, coord2 ], legionSquad2.squadNumber)
-        printBoard(CCrypts);
-        await new Promise(resolve => setTimeout(resolve, 500));
 
-        // 4b. Move squad 2 across the board
-        await CCrypts.moveLegionAcrossBoard([ coord2, coord3 ], legionSquad2.squadNumber)
-        printBoard(CCrypts);
-        await new Promise(resolve => setTimeout(resolve, 500));
 
-        // 5. place 5th tile after legions have crossed, or it will cause the 1st tile to be removed
-        // before the legions have crossed, making it impossible for a legion to move
-        await CCrypts.placeMapTileOnBoard(4, coord5);
-        printBoard(CCrypts);
-        await new Promise(resolve => setTimeout(resolve, 500));
+    // it("Places Maptiles and moves Legions, validating moves", async function () {
 
-        // 6. move legionSquad1
-        await CCrypts.moveLegionAcrossBoard([ coord4, coord5 ], legionSquad1.squadNumber)
-        printBoard(CCrypts);
-        await new Promise(resolve => setTimeout(resolve, 500));
+    //     let coord1: CoordsStruct = { "x": 0, "y": 0 }
+    //     let coord2: CoordsStruct = { "x": 1, "y": 0 }
+    //     let coord3: CoordsStruct = { "x": 1, "y": 1 }
+    //     let coord4: CoordsStruct = { "x": 1, "y": 2 }
+    //     let coord5: CoordsStruct = { "x": 2, "y": 2 }
+    //     let coord6: CoordsStruct = { "x": 2, "y": 3 }
+    //     let coord7: CoordsStruct = { "x": 2, "y": 4 }
+    //     let coord8: CoordsStruct = { "x": 3, "y": 4 }
 
-        // 7. place next map tile
-        await CCrypts.placeMapTileOnBoard(18, coord6);
-        printBoard(CCrypts);
-        await new Promise(resolve => setTimeout(resolve, 500));
+    //     // 1. Print Empty Board
+    //     printBoard(CCrypts);
+    //     await new Promise(resolve => setTimeout(resolve, 1000));
 
-        // 8. move legionSquad1
-        await CCrypts.moveLegionAcrossBoard([ coord5, coord6 ], legionSquad1.squadNumber)
-        printBoard(CCrypts);
-        await new Promise(resolve => setTimeout(resolve, 500));
+    //     // 2. place tiles
+    //     await CCrypts.placeMapTileOnBoard(1, coord1);
+    //     await CCrypts.placeMapTileOnBoard(6, coord2);
+    //     await CCrypts.placeMapTileOnBoard(29, coord3);
+    //     await CCrypts.placeMapTileOnBoard(27, coord4);
 
-        // 9. place next map tile
-        await CCrypts.placeMapTileOnBoard(27, coord7);
-        printBoard(CCrypts);
-        await new Promise(resolve => setTimeout(resolve, 500));
+    //     printBoard(CCrypts);
+    //     await new Promise(resolve => setTimeout(resolve, 500));
 
-        // 10. move legionSquad1 to temple destination
-        await CCrypts.moveLegionAcrossBoard([ coord6, coord7 ], legionSquad1.squadNumber)
-        printBoard(CCrypts);
-        await new Promise(resolve => setTimeout(resolve, 500));
+    //     const legionSquad1 = {
+    //         squadNumber: LegionSquadId.Squad1,
+    //         legionIds: [1111, 1502, 345]
+    //     }
+    //     const legionSquad2 = {
+    //         squadNumber: LegionSquadId.Squad2,
+    //         legionIds: [22, 33, 44, 55, 66]
+    //     }
 
-        // 11. move legionSquad2 to temple destination
-        await CCrypts.moveLegionAcrossBoard([ coord3, coord4 ], legionSquad2.squadNumber)
-        printBoard(CCrypts);
-        await new Promise(resolve => setTimeout(resolve, 500));
+    //     // make it easy to trigger a new Round for testing purposes
+    //     await CCrypts.setMaxLegionsOnTemplesBeforeReset(2);
 
-        // 12. move legionSquad2 to temple destination
-        await CCrypts.moveLegionAcrossBoard([ coord4, coord5 ], legionSquad2.squadNumber)
-        printBoard(CCrypts);
-        await new Promise(resolve => setTimeout(resolve, 500));
 
-        // 13. move legionSquad2 to temple destination
-        await CCrypts.moveLegionAcrossBoard([ coord5, coord6 ], legionSquad2.squadNumber)
-        printBoard(CCrypts);
-        await new Promise(resolve => setTimeout(resolve, 500));
+    //     // 3a. Move squad 1 across the board
+    //     await CCrypts.assignLegionSquadsAndPlaceOnMap(
+    //         coord1,
+    //         legionSquad1.squadNumber,
+    //         legionSquad1.legionIds,
+    //         Temple.ForbiddenCrafts,
+    //     );
+    //     printBoard(CCrypts);
+    //     await new Promise(resolve => setTimeout(resolve, 500));
 
-        // 14. move legionSquad2 to temple destination
-        // cannot stack 2 legionSquads by the same player
-        await expect(
-            CCrypts.moveLegionAcrossBoard([ coord6, coord7 ], legionSquad2.squadNumber)
-        ).to.be.revertedWith("Cannot stack two legion squads on the same MapTile");
-        printBoard(CCrypts);
-        await new Promise(resolve => setTimeout(resolve, 500));
+    //     await CCrypts.moveLegionAcrossBoard([ coord1, coord2 ], legionSquad1.squadNumber)
+    //     printBoard(CCrypts);
+    //     await new Promise(resolve => setTimeout(resolve, 500));
 
-        // 15. place next map tile
-        await CCrypts.placeMapTileOnBoard(20, coord8);
-        printBoard(CCrypts);
-        await new Promise(resolve => setTimeout(resolve, 500));
+    //     await CCrypts.moveLegionAcrossBoard([ coord2, coord3 ], legionSquad1.squadNumber)
+    //     printBoard(CCrypts);
+    //     await new Promise(resolve => setTimeout(resolve, 500));
 
-        // 16. move legionSquad1 from temple destination
-        await CCrypts.moveLegionAcrossBoard([ coord7, coord8 ], legionSquad1.squadNumber)
-        printBoard(CCrypts);
-        await new Promise(resolve => setTimeout(resolve, 500));
+    //     await CCrypts.moveLegionAcrossBoard([ coord3, coord4 ], legionSquad1.squadNumber)
+    //     printBoard(CCrypts);
+    //     await new Promise(resolve => setTimeout(resolve, 500));
 
-        /// Need to move to squads, to handle over lap
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        debugPrint("Simulation Ended")
-    });
+
+    //     // 4a. Move squad 2 across the board
+    //     await CCrypts.assignLegionSquadsAndPlaceOnMap(
+    //         coord1,
+    //         legionSquad2.squadNumber,
+    //         legionSquad2.legionIds,
+    //         Temple.Harvester1,
+    //     );
+    //     printBoard(CCrypts);
+    //     await new Promise(resolve => setTimeout(resolve, 500));
+    //     await CCrypts.moveLegionAcrossBoard([ coord1, coord2 ], legionSquad2.squadNumber)
+    //     printBoard(CCrypts);
+    //     await new Promise(resolve => setTimeout(resolve, 500));
+
+    //     // 4b. Move squad 2 across the board
+    //     await CCrypts.moveLegionAcrossBoard([ coord2, coord3 ], legionSquad2.squadNumber)
+    //     printBoard(CCrypts);
+    //     await new Promise(resolve => setTimeout(resolve, 500));
+
+    //     // 5. place 5th tile after legions have crossed, or it will cause the 1st tile to be removed
+    //     // before the legions have crossed, making it impossible for a legion to move
+    //     await CCrypts.placeMapTileOnBoard(4, coord5);
+    //     printBoard(CCrypts);
+    //     await new Promise(resolve => setTimeout(resolve, 500));
+
+    //     // 6. move legionSquad1
+    //     await CCrypts.moveLegionAcrossBoard([ coord4, coord5 ], legionSquad1.squadNumber)
+    //     printBoard(CCrypts);
+    //     await new Promise(resolve => setTimeout(resolve, 500));
+
+    //     // 7. place next map tile
+    //     await CCrypts.placeMapTileOnBoard(18, coord6);
+    //     printBoard(CCrypts);
+    //     await new Promise(resolve => setTimeout(resolve, 500));
+
+    //     // 8. move legionSquad1
+    //     await CCrypts.moveLegionAcrossBoard([ coord5, coord6 ], legionSquad1.squadNumber)
+    //     printBoard(CCrypts);
+    //     await new Promise(resolve => setTimeout(resolve, 500));
+
+    //     // 9. place next map tile
+    //     await CCrypts.placeMapTileOnBoard(27, coord7);
+    //     printBoard(CCrypts);
+    //     await new Promise(resolve => setTimeout(resolve, 500));
+
+    //     // 10. move legionSquad1 to temple destination
+    //     await CCrypts.moveLegionAcrossBoard([ coord6, coord7 ], legionSquad1.squadNumber)
+    //     printBoard(CCrypts);
+    //     await new Promise(resolve => setTimeout(resolve, 500));
+
+    //     // 11. move legionSquad2 to temple destination
+    //     await CCrypts.moveLegionAcrossBoard([ coord3, coord4 ], legionSquad2.squadNumber)
+    //     printBoard(CCrypts);
+    //     await new Promise(resolve => setTimeout(resolve, 500));
+
+    //     // 12. move legionSquad2 to temple destination
+    //     await CCrypts.moveLegionAcrossBoard([ coord4, coord5 ], legionSquad2.squadNumber)
+    //     printBoard(CCrypts);
+    //     await new Promise(resolve => setTimeout(resolve, 500));
+
+    //     // 13. move legionSquad2 to temple destination
+    //     // this triggers a new Round and Temples reshuffle
+    //     await CCrypts.moveLegionAcrossBoard([ coord5, coord6 ], legionSquad2.squadNumber)
+    //     printBoard(CCrypts);
+    //     await new Promise(resolve => setTimeout(resolve, 500));
+
+    //     // 14. move legionSquad2 to temple destination
+    //     // cannot stack 2 legionSquads by the same player
+    //     await expect(
+    //         CCrypts.moveLegionAcrossBoard([ coord6, coord7 ], legionSquad2.squadNumber)
+    //     ).to.be.revertedWith("Cannot stack two legion squads on the same MapTile");
+    //     printBoard(CCrypts);
+    //     await new Promise(resolve => setTimeout(resolve, 500));
+
+    //     // 15. place next map tile
+    //     await CCrypts.placeMapTileOnBoard(20, coord8);
+    //     printBoard(CCrypts);
+    //     await new Promise(resolve => setTimeout(resolve, 500));
+
+    //     // 16. move legionSquad1 from temple destination
+    //     await CCrypts.moveLegionAcrossBoard([ coord7, coord8 ], legionSquad1.squadNumber)
+    //     printBoard(CCrypts);
+    //     await new Promise(resolve => setTimeout(resolve, 500));
+
+    //     /// Need to move to squads, to handle over lap
+    //     await new Promise(resolve => setTimeout(resolve, 1000));
+    //     debugPrint("Simulation Ended")
+    // });
 
 
     // it("Print Board Cell", async function () {
@@ -357,6 +470,16 @@ describe("CorruptionCrypts", function () {
     //////////////////////////////
     //////////////////////////////
 
+
+    const convertPendingMapTiles = (d: Result): MapTileTS => ({
+        epoch: d[0].toNumber(),
+        tileId: d[1].toNumber(),
+        moves: d[2].toNumber(),
+        north: d[3],
+        east: d[4],
+        south: d[5],
+        west: d[6],
+    })
 
     const getBoardCellTS = async (row: number, col: number, print=false): Promise<BoardCellTS> => {
 

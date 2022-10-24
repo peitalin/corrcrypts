@@ -11,8 +11,9 @@ abstract contract CorruptionCryptsGlobalState is Initializable, AdminableUpgrade
     LibCorruptionCryptsDiamond.AppStorage internal appStorage;
 
     uint8 MAX_TILES_ON_BOARD = 5;
-    uint MAX_LEGIONS_ON_TEMPLES_BEFORE_RESET = 2;
+    uint MAX_LEGIONS_ON_TEMPLES_BEFORE_RESET = 4000;
     // should be like 4000 in practice
+    uint8 NUM_HARVESTERS = 4;
 
     // gobal temple locations
 
@@ -31,8 +32,8 @@ abstract contract CorruptionCryptsGlobalState is Initializable, AdminableUpgrade
 
     mapping(address => mapping(uint => bool)) hasPlayerMovedInEpoch;
     // Keep track of each player => epoch => whether maptile was drawn
-    uint MAX_PENDING_MOVES = 5;
-    // players can "build up" up to 5 moves over a day
+    uint MAX_PENDING_MOVES = 6;
+    // players can "build up" up to 6 moves over a day (4hr epochs * 6 = 24hrs)
     uint GAME_ROUND = 1;
     // increment this when MAX_LEGIONS_ON_TEMPLES_BEFORE_RESET is reached
     event AdvancedEpoch(uint, uint);
@@ -44,7 +45,7 @@ abstract contract CorruptionCryptsGlobalState is Initializable, AdminableUpgrade
 
     modifier tryAdvanceEpoch() {
         // try advance epoch if it's after epochEndTime
-        _advanceEpoch(block.timestamp);
+        _advanceManyEpochsToPresent(block.timestamp);
         _;
     }
 
@@ -67,16 +68,30 @@ abstract contract CorruptionCryptsGlobalState is Initializable, AdminableUpgrade
         }
     }
 
+    function _markPreviousEpochsAsUsed() internal {
+
+        uint8 offset_previous_epoch = 1;
+        // mark all previous epochs that have passed as "playerMoved"
+        for (uint i = offset_previous_epoch; i < MAX_PENDING_MOVES; i++) {
+            if (currentEpoch >= i) { // skip negative epochs
+                if (!hasPlayerMovedInEpoch[msg.sender][currentEpoch - i]) {
+                    hasPlayerMovedInEpoch[msg.sender][currentEpoch - i] = true;
+                }
+            }
+        }
+    }
+
+
     function _testSetCurrentEpoch(uint n) public onlyOwner {
         // test only
         currentEpoch = n;
     }
 
-    function advanceEpoch() public {
-        _advanceEpoch(block.timestamp);
+    function advanceManyEpochsToPresent() public {
+        _advanceManyEpochsToPresent(block.timestamp);
     }
 
-    function _advanceEpoch(uint _now) internal {
+    function _advanceManyEpochsToPresent(uint _now) internal {
         // anyone can advance the epoch if current time is past endTime
         if (_now >= epochEndTime) {
             // if current time is far ahead of epochEndTime, fast forward
