@@ -251,11 +251,10 @@ contract CorruptionCrypts is Initializable, MapTiles, OwnableUpgradeable, Corrup
 
         /// Redo: Randomly pick 5 distinct tiles on the board edges and place temples on them
         // board[x][y]
-        globalTempleLocations[1][4] = Temple.ForbiddenCrafts;
-        globalTempleLocations[2][4] = Temple.Harvester1;
-        globalTempleLocations[4][4] = Temple.Harvester2;
-        globalTempleLocations[6][4] = Temple.Harvester3;
-        globalTempleLocations[7][4] = Temple.Harvester4;
+        globalTempleLocations[1][4] = Temple.Harvester1;
+        globalTempleLocations[2][4] = Temple.Harvester2;
+        globalTempleLocations[4][4] = Temple.Harvester3;
+        globalTempleLocations[6][4] = Temple.Harvester4;
         // shuffleGlobalTempleLocations();
 
         playersBoards[msg.sender] = board;
