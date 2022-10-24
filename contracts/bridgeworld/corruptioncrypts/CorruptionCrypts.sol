@@ -15,16 +15,10 @@ import "./CorruptionCryptsShuffler.sol";
 import "./MapTiles.sol";
 
 
-enum PlayerType {
-    NONE,
-    NATURE,
-    USER
-}
-
 
 // Represents the information contained in a single cell of the game grid.
 struct Cell {
-    // The MapTile played on this cell. May be 0 if PlayerType == NONE
+    // The MapTile played on this cell.
     uint8 tileId;
 
     // Treasure Fragments Ids on this cell. Loot.
@@ -78,7 +72,7 @@ struct PlayerMove {
 enum MoveType {
     PlaceMapTile,
     MoveLegion,
-    None
+    BlowUpMapTile
 }
 
 
@@ -90,32 +84,28 @@ contract CorruptionCrypts is Initializable, MapTiles, OwnableUpgradeable, Corrup
     //////////////////////////////////
 
     mapping(address => Cell[5][8]) playersBoards;
-    // Every player has their own board, as they place MapTiles and legions uniquely
+    // Every player has their own board, they place MapTiles and legions uniquely
     // 8x columns of Cell[5] rows = 5x8 Grid
     Cell[5][8] emptyBoard; // For initializing new player boards
     mapping(address => mapping(LegionSquadId => LegionSquad)) playerLegionSquads;
-    // playerAddress => LegionSquadId(0-3) => LegionSquad
-    /// We will batch legions into squads and have them move around the map
+    /// We batch legions into squads and have them move around the map
 
     mapping(address => PendingMove[]) currentHandOfMoves;
-    // mapping(address => mapping(uint => MapTile)) currentHandOfMapTiles;
-
-    // Each player has a "hand" of drawn maptiles, he must first use up all these
+    // Each player has a "hand" of drawn maptiles/moves, he must first use up all these
     // maptiles before he can draw another hand of maptiles (up to 6 max)
     // if he does not, the Epochs keep advancing and he starts missing out on turns
 
-    // keep a record of MapTiles on the board and ability to look up their cell
+    DoubleEndedQueue.Bytes32Deque tilesOnBoardQueue;
+    // Keep a record of MapTiles on the board and ability to look up their cell
     // these maptiles are on (so that we can remove it)
     // As players place more MapTiles, the oldest tiles are removed.
     // https://docs.openzeppelin.com/contracts/4.x/api/utils#DoubleEndedQueue
-    DoubleEndedQueue.Bytes32Deque tilesOnBoardQueue;
+
     mapping(uint => Coords) mapTileIdToCell;
-
-
-
+    // Keep track of a player's mapTileIds to their locations
 
     //////////////////////////////////
-    /////// Global Temple Variables /////////
+    /////// Global Temple Variables
     //////////////////////////////////
 
     // Once MAX legions at temples reached, reset temple locations
@@ -127,10 +117,8 @@ contract CorruptionCrypts is Initializable, MapTiles, OwnableUpgradeable, Corrup
 
     mapping(Temple => uint) totalLegionsOnTemple;
     // need to track #legions at each temple to calculate corruption diversion
-
     mapping(Temple => mapping(address => uint[])) playerLegionsOnTemple;
-    // need actual player's legionsIds on temples to see which legions can craft
-    // forbidden crafts
+    // player legionsIds on temples to see which legions can craft forbidden crafts
 
 
     //////////////////////////////////
@@ -294,10 +282,10 @@ contract CorruptionCrypts is Initializable, MapTiles, OwnableUpgradeable, Corrup
         uint numTemples = templeLocations.length;
         require(numTemples == NUM_HARVESTERS, "number of random coords for numTemples mismatched");
 
-        // new temple locations
+        // new temple locations, index starting on 1
         for (uint t = 0; t < NUM_HARVESTERS; t++) {
             uint8[2] memory templeCoords = templeLocations[t];
-            Temple temple = getTempleHarvester(t);
+            Temple temple = getTempleHarvester(t+1); // 1-indexed
             globalTempleLocations[templeCoords[0]][templeCoords[1]] = temple;
         }
     }
@@ -546,7 +534,7 @@ contract CorruptionCrypts is Initializable, MapTiles, OwnableUpgradeable, Corrup
         return mtile;
     }
 
-    function _getMapTile(uint8 mapTileId) internal returns (MapTile memory) {
+    function _getMapTile(uint8 mapTileId) view internal returns (MapTile memory) {
         // tileId is 1-indexed, subtract 1 to get 0-indexed maptile
         require(mapTileId > 0, "MapTileId cannot be less than 1");
         MapTile memory mtile = mapTiles[mapTileId-1];

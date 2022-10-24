@@ -51,32 +51,33 @@ abstract contract CorruptionCryptsSettings is Initializable, CorruptionCryptsCon
     function getTempleHarvester(uint t) pure internal returns (Temple temple) {
 
         temple = Temple.None;
+        // if t == 0; temple is None
 
-        if (t == 0) {
+        if (t == 1) {
             temple = Temple.Harvester1;
         }
-        if (t == 1) {
+        if (t == 2) {
             temple = Temple.Harvester2;
         }
-        if (t == 2) {
+        if (t == 3) {
             temple = Temple.Harvester3;
         }
-        if (t == 3) {
+        if (t == 4) {
             temple = Temple.Harvester4;
         }
-        if (t == 4) {
+        if (t == 5) {
             temple = Temple.Harvester5;
         }
-        if (t == 5) {
+        if (t == 6) {
             temple = Temple.Harvester6;
         }
-        if (t == 6) {
+        if (t == 7) {
             temple = Temple.Harvester7;
         }
-        if (t == 7) {
+        if (t == 8) {
             temple = Temple.Harvester8;
         }
-        if (t == 8) {
+        if (t == 9) {
             temple = Temple.Harvester9;
         }
         // // not used

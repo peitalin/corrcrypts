@@ -14,9 +14,6 @@ abstract contract CorruptionCryptsGlobalState is Initializable, AdminableUpgrade
     uint MAX_LEGIONS_ON_TEMPLES_BEFORE_RESET = 4000;
     // should be like 4000 in practice
     uint8 NUM_HARVESTERS = 4;
-
-    // gobal temple locations
-
     // Corruption Diversion variables
     // Forbidden Crafts variables
 
