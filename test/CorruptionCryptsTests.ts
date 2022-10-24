@@ -239,6 +239,7 @@ describe("CorruptionCrypts", function () {
                 moveType: MoveType.PlaceMapTile,
                 epoch: 2,
                 tileId: 10,
+                legionSquadId: LegionSquadId.None,
             },
             {
                 coords: [
@@ -247,6 +248,7 @@ describe("CorruptionCrypts", function () {
                 moveType: MoveType.PlaceMapTile,
                 epoch: 1,
                 tileId: 11,
+                legionSquadId: LegionSquadId.None,
             },
             {
                 coords: [
@@ -255,6 +257,7 @@ describe("CorruptionCrypts", function () {
                 moveType: MoveType.PlaceMapTile,
                 epoch: 0,
                 tileId: 12,
+                legionSquadId: LegionSquadId.None,
             },
         ])).wait();
 

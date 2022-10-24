@@ -72,6 +72,7 @@ struct PlayerMove {
     MoveType moveType;
     uint epoch;
     uint8 tileId;
+    LegionSquadId legionSquadId;
 }
 
 enum MoveType {
@@ -147,6 +148,8 @@ contract CorruptionCrypts is Initializable, MapTiles, OwnableUpgradeable, Corrup
     event TempleCoordsReshuffled(Coords[], Temple[]);
     // list of new coords for temples, order matches order in Temple enum
 
+
+
     function initialize() external initializer {
         // CorruptionCryptsShuffler.__CorruptionCryptsShuffler_init();
         OwnableUpgradeable.__Ownable_init();
@@ -182,6 +185,7 @@ contract CorruptionCrypts is Initializable, MapTiles, OwnableUpgradeable, Corrup
                 epoch: currentEpoch - offset,
                 tileId: mapTileIds[offset],
                 moves: drawnMapTile.moves,
+                // the folling fields aren't needed, just for print logging in tests
                 north: drawnMapTile.north,
                 east: drawnMapTile.east,
                 south: drawnMapTile.south,
@@ -202,7 +206,7 @@ contract CorruptionCrypts is Initializable, MapTiles, OwnableUpgradeable, Corrup
 
         for (uint i = 0; i < moves.length; i++) {
 
-            PlayerMove memory move = moves[i];
+            PlayerMove calldata move = moves[i];
             require(
                 move.epoch == currentHand[i].epoch,
                 "epoch mismatch when submitting moves"
@@ -215,11 +219,23 @@ contract CorruptionCrypts is Initializable, MapTiles, OwnableUpgradeable, Corrup
             console.log("move.epoch: ", move.epoch);
             if (move.moveType == MoveType.PlaceMapTile) {
                 console.log("Placing maptile tileId: ", move.tileId);
-                // place mapTile
-
+                // place mapTile logic
+                require(move.coords.length == 1, "only 1 coord needed when placing MapTiles");
+                Coords calldata coords = move.coords[0];
+                placeMapTileOnBoard(move.tileId, coords);
+                // emit event to tell player that new MapTile was placed in location
             }
             if (move.moveType == MoveType.MoveLegion) {
+                // move legion logic
                 console.log("Moving legion with tileId: ", move.tileId);
+                // verify number of coords equals number of allowed moves for that tileId
+                MapTile memory mtile = getMapTile(move.tileId);
+                require(
+                    move.coords.length == mtile.moves,
+                    "illegal number of submitted moves for this MapTile"
+                );
+                moveLegionAcrossBoard(move.coords, move.legionSquadId);
+                // emit event to tell player that legionSquad has moved into a new location
             }
         }
         // empty player's hand
@@ -294,12 +310,6 @@ contract CorruptionCrypts is Initializable, MapTiles, OwnableUpgradeable, Corrup
         _;
     }
 
-    function placeMapTileOrMoveLegion(MapTile calldata mapTile) external {
-        // validate mapTile has mapTile.moves
-        // either place the mapTile on the board
-        // or move legion mapTile.moves
-        // then delete mapTile from queue
-    }
 
     function assignLegionSquadsAndPlaceOnMap(
         Coords calldata coords,
